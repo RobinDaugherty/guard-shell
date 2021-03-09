@@ -1,54 +1,59 @@
 require 'guard/compat/plugin'
 require 'guard/shell/version'
+require 'open3'
 
 module Guard
   class Shell < Plugin
-
-    # Calls #run_all if the :run_at_start option is present.
     def start
-      $stdout.puts run if options[:run_at_start]
+      if options[:run_at_start]
+        Compat::UI.info "#{name} running at start"
+        run_command
+      end
     end
 
-    # Defined only to make callback(:stop_begin) and callback(:stop_end) working
     def stop
     end
 
     def run_on_changes(files)
-      $stdout.puts run(files)
+      Compat::UI.info "#{name}: #{files.join}"
+      run_command(files)
+    end
+
+    def run_all
+      run_command
+    end
+
+    def name
+      options[:name] || "shell"
     end
 
     private
 
-    def run(files = [])
-      options[:run].call(files)
-    end
+    def run_command(files = [])
+      command = options[:command].call(files)
+      (stdin, stdout_and_stderr, thread) = Open3.popen2e(command)
+      output = stdout_and_stderr.read
+      puts output
 
-  end
-
-  class Dsl
-    # Easy method to display a notification
-    def n(msg, title='', image=nil)
-      Compat::UI.notify(msg, :title => title, :image => image)
-    end
-
-    # Eager prints the result for stdout and stderr as it would be written when
-    # running the command from the terminal. This is useful for long running
-    # tasks.
-    def eager(command)
-      require 'pty'
-
-      begin
-        PTY.spawn command do |r, w, pid|
-          begin
-            $stdout.puts
-            r.each {|line| print line }
-          rescue Errno::EIO
-            # the process has finished
-          end
-        end
-      rescue PTY::ChildExited
-        $stdout.puts "The child process exited!"
+      if thread.value.success?
+        Compat::UI.notify(output.lines.last, title: name, type: :success) if notify?
+      else
+        Compat::UI.notify(output.lines.last, title: name, type: :failed) if notify?
+        throw :task_has_failed
       end
+    rescue => e
+      msg = "#{e.class.name}: #{e.message}"
+      Compat::UI.error "#{name}: raised error #{msg}"
+      Compat::UI.notify(msg, title: name, type: :failed) if notify?
+      throw :task_has_failed
+    end
+
+    def notify?
+      options.fetch(:notification, true)
+    end
+
+    def run_at_start?
+      options.fetch(:run_at_start, false)
     end
   end
 end

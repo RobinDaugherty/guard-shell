@@ -1,7 +1,17 @@
 # Guard::Shell
 
-This little guard allows you to run shell commands when files are altered.
+Shell commands triggered by files changing.
 
+- [ ] TODO: Update specs
+
+## Differences from guard-shell
+
+- Runs the shell command on a set of changes instead of once per file (like all other guards)
+- `run_on_start` option runs the command once, not once per file that will be watched
+- Shows notifications based on the command status, no additions to the DSL
+- Last line of command output is shown in the notification
+- `name` option provides a meaningful name for each instance which is displayed in console and notifications
+- Runs on all file changes, not just modifications of existing files.
 
 ## Install
 
@@ -23,77 +33,71 @@ And then add a basic setup to your Guardfile:
 ## Usage
 
 If you can do something in your shell, or in ruby, you can do it when files change
-with guard-shell. It simply executes a block if one or more matching files change,
-and if anything is returned from the block it will be printed. For example
+with guard-shell. It executes a shell command, given by the `command` block you provide,
+if one or more matching files change.
+The output of the command is shown in the console.
+It shows a notification based on the return status of that shell command.
 
 ``` ruby
-guard :shell, run: proc { |files| `bin/rake graphql:schema:idl` } do
+guard(
+  :shell,
+  name: "GraphQL Schema",
+  command: proc { |files| "bin/rake graphql:schema:idl" },
+) do
   watch %r{app/graphql.+}
 end
 ```
 
 will run a rake task and print the returned output from the rake task to the console.
 
+You can also return an array of command components. To have it run at startup:
 
 ``` ruby
-guard :shell, run: proc { |files| "#{files.join} changed" }, run_at_start: true do
+guard(
+  :shell,
+  name: "GraphQL Schema",
+  run_at_start: true,
+  command: proc { |files| ["bin/rake", "graphql:schema:idl"] },
+) do
   watch %r{app/graphql.+}
 end
 ```
-
-There is also a shortcut for easily creating notifications:
-
-``` ruby
-guard :shell, run: proc { |files| n "GraphQL", `bin/rake graphql:schema:idl` } do
-  watch %r{app/graphql.+}
-end
-```
-
-`#n` takes up to three arguments; the first is the body of the message, here the path
-of the changed file; the second is the title for the notification; and the third is
-the image to use. There are three (four counting `nil` the default) different images
-that can be specified `:success`, `:pending` and `:failed`.
-
 
 ### Examples
 
-#### Saying the Name of the File You Changed and Displaying a Notification
+#### Saying the Name of the File(s) You Changed
 
 ``` ruby
-guard :shell, run: proc { |files|
-  n files.join, 'Changed'
-  `say -v cello #{m[0]}`
-  } do
+guard(
+  :shell,
+  name: "Speak Changes",
+  command: proc { |files| "say -v cello #{files.join(" ")}" },
+) do
   watch /(.*)/
-end
-```
-
-#### Rebuilding LaTeX
-
-``` ruby
-guard :shell, :run_at_start => true do
-  watch /^([^\/]*)\.tex/ do |m|
-    `pdflatex -shell-escape #{m[0]}`
-    `rm #{m[1]}.log`
-
-    count = `texcount -inc -nc -1 #{m[0]}`.split('+').first
-    msg = "Built #{m[1]}.pdf (#{count} words)"
-    n msg, 'LaTeX'
-    "-> #{msg}"
-  end
 end
 ```
 
 #### Check Syntax of a Ruby File
 
 ``` ruby
-guard :shell do
-  watch /.*\.rb$/ do |m|
-    if system("ruby -c #{m[0]}")
-      n "#{m[0]} is correct", 'Ruby Syntax', :success
-    else
-      n "#{m[0]} is incorrect", 'Ruby Syntax', :failed
-    end
-  end
+guard(
+  :shell ,
+  name: "Check Ruby Syntax",
+  command: proc { |files| "ruby -c #{files.join(' ')}" },
+) do
+  watch /.*\.rb$/
+end
+```
+
+#### Run tests on corresponding file
+
+``` ruby
+guard(
+  :shell ,
+  name: "Run Corresponding Test",
+  command: proc { |files| "bin/test #{files.join(' ')}" },
+) do
+  # Translate the matching changed file path to get the path of the corresponding test file.
+  watch %r{app/stuff/(.*)\.rb$} { |m| "spec/stuff/#{m[1]}_test.rb" }
 end
 ```
