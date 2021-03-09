@@ -1,9 +1,9 @@
 require 'guard/compat/plugin'
-require 'guard/shell/version'
+require 'guard/super_shell/version'
 require 'open3'
 
 module Guard
-  class Shell < Plugin
+  class SuperShell < Plugin
     def start
       if options[:run_at_start]
         Compat::UI.info "#{name} running at start"

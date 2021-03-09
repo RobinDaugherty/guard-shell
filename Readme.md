@@ -1,10 +1,10 @@
-# Guard::Shell
+# guard-super_shell
 
 Shell commands triggered by files changing.
 
 - [ ] TODO: Update specs
 
-## Differences from guard-shell
+## Differences from [guard-shell](https://github.com/guard/guard-shell)
 
 - Runs the shell command on a set of changes instead of once per file (like all other guards)
 - `run_on_start` option runs the command once, not once per file that will be watched
@@ -19,11 +19,11 @@ Make sure you have [guard](http://github.com/guard/guard) installed.
 
 Install the gem with:
 
-    gem install guard-shell
+    gem install guard-super_shell
 
 Or add it to your Gemfile:
 
-    gem 'guard-shell'
+    gem 'guard-super_shell'
 
 And then add a basic setup to your Guardfile:
 
@@ -33,7 +33,7 @@ And then add a basic setup to your Guardfile:
 ## Usage
 
 If you can do something in your shell, or in ruby, you can do it when files change
-with guard-shell. It executes a shell command, given by the `command` block you provide,
+with guard-super_shell. It executes a shell command built by the `command` block you provide,
 if one or more matching files change.
 The output of the command is shown in the console.
 It shows a notification based on the return status of that shell command.
