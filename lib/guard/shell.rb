@@ -4,23 +4,23 @@ require 'guard/shell/version'
 module Guard
   class Shell < Plugin
 
-    # Calls #run_all if the :all_on_start option is present.
+    # Calls #run_all if the :run_at_start option is present.
     def start
-      run_all if options[:all_on_start]
+      $stdout.puts run if options[:run_at_start]
     end
 
     # Defined only to make callback(:stop_begin) and callback(:stop_end) working
     def stop
     end
 
-    # Call #run_on_change for all files which match this guard.
-    def run_all
-      run_on_modifications(Compat.matching_files(self, Dir.glob('{,**/}*{,.*}')))
+    def run_on_changes(files)
+      $stdout.puts run(files)
     end
 
-    # Print the result of the command(s), if there are results to be printed.
-    def run_on_modifications(res)
-      $stdout.puts res if res
+    private
+
+    def run(files = [])
+      options[:run].call(files)
     end
 
   end

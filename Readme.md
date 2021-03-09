@@ -22,35 +22,30 @@ And then add a basic setup to your Guardfile:
 
 ## Usage
 
-If you can do something in your shell, or in ruby, you can do it when a file changes
-with guard-shell. It simply executes the block passed to watch if a change is 
-detected, and if anything is returned from the block it will be printed. For example
+If you can do something in your shell, or in ruby, you can do it when files change
+with guard-shell. It simply executes a block if one or more matching files change,
+and if anything is returned from the block it will be printed. For example
 
 ``` ruby
-guard :shell do
-  watch /.*/ do |m|
-    m[0] + " has changed."
-  end
+guard :shell, run: proc { |files| `bin/rake graphql:schema:idl` } do
+  watch %r{app/graphql.+}
 end
 ```
 
-will simply print a message telling you a file has been changed when it is changed.
-This admittedly isn't a very useful example, but you hopefully get the idea. To run
-everything on start pass `:all_on_start` to `#guard`,
+will run a rake task and print the returned output from the rake task to the console.
+
 
 ``` ruby
-guard :shell, :all_on_start => true do
-  # ...
+guard :shell, run: proc { |files| "#{files.join} changed" }, run_at_start: true do
+  watch %r{app/graphql.+}
 end
 ```
 
-There is also a shortcut for easily creating notifications,
+There is also a shortcut for easily creating notifications:
 
 ``` ruby
-guard :shell do
-  watch /.*/ do |m|
-    n m[0], 'File Changed'
-  end
+guard :shell, run: proc { |files| n "GraphQL", `bin/rake graphql:schema:idl` } do
+  watch %r{app/graphql.+}
 end
 ```
 
@@ -65,18 +60,18 @@ that can be specified `:success`, `:pending` and `:failed`.
 #### Saying the Name of the File You Changed and Displaying a Notification
 
 ``` ruby
-guard :shell do
-  watch /(.*)/ do |m|
-    n m[0], 'Changed'
-    `say -v cello #{m[0]}`
-  end
+guard :shell, run: proc { |files|
+  n files.join, 'Changed'
+  `say -v cello #{m[0]}`
+  } do
+  watch /(.*)/
 end
 ```
 
 #### Rebuilding LaTeX
 
 ``` ruby
-guard :shell, :all_on_start => true do
+guard :shell, :run_at_start => true do
   watch /^([^\/]*)\.tex/ do |m|
     `pdflatex -shell-escape #{m[0]}`
     `rm #{m[1]}.log`
